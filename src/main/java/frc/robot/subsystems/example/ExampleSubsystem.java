@@ -1,21 +1,18 @@
 package frc.robot.subsystems.example;
 
+import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import org.littletonrobotics.junction.Logger;
+
+import java.util.function.DoubleSupplier;
+import java.util.function.Supplier;
 
 public class ExampleSubsystem extends SubsystemBase {
     private ExampleSubsystemIO io;
     private final ExampleSubsystemIOInputsAutoLogged inputs = new ExampleSubsystemIOInputsAutoLogged();
-    private static ExampleSubsystem instance;
     private boolean enabled;
-
-    public static ExampleSubsystem getInstance() {
-        return instance;
-    }
-
-    public static void createInstance(ExampleSubsystem exampleSubsystem) {
-        instance = exampleSubsystem;
-    }
 
     public ExampleSubsystem(boolean enabled, ExampleSubsystemIO io) {
         if (enabled) {
@@ -23,13 +20,6 @@ public class ExampleSubsystem extends SubsystemBase {
             io.setup();
         }
         this.enabled = enabled;
-    }
-
-    public ExampleSubsystemIO getIO() {
-        if (enabled)
-            return io;
-        else
-            return new ExampleSubsystemIO() {};
     }
 
     @Override
@@ -41,5 +31,13 @@ public class ExampleSubsystem extends SubsystemBase {
 
         io.updateInputs(inputs);
         Logger.processInputs("ExampleSubsystem", inputs);
+    }
+
+    public Command setAngle(Supplier<Rotation2d> angle) {
+        return Commands.runOnce(() -> io.setAngle(angle.get()));
+    }
+
+    public Command setPercent(DoubleSupplier percent) {
+        return Commands.runOnce(() -> io.setPercent(percent.getAsDouble()));
     }
 }

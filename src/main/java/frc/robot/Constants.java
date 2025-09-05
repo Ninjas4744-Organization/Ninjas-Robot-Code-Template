@@ -2,8 +2,9 @@ package frc.robot;
 
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.util.Units;
-import frc.lib.NinjasLib.dataclasses.*;
-import frc.lib.NinjasLib.dataclasses.RealControllerConstants.SimpleControllerConstants;
+import frc.lib.NinjasLib.controllers.constants.ControlConstants;
+import frc.lib.NinjasLib.controllers.constants.ControllerConstants;
+import frc.lib.NinjasLib.controllers.constants.RealControllerConstants;
 
 public class Constants {
     public enum RobotMode {
@@ -19,7 +20,7 @@ public class Constants {
 
     /* General */
     public static final RobotMode kSimMode = RobotMode.SIM;
-    public static final RobotMode kCurrentMode = Robot.isReal() ? RobotMode.REAL : kSimMode;
+    public static final RobotMode kRobotMode = Robot.isReal() ? RobotMode.REAL : kSimMode;
     public static final int kDriverControllerPort = 0;
     public static final int kOperatorControllerPort = 1;
 
@@ -29,12 +30,12 @@ public class Constants {
         /* Base */
         kExampleSubsystemControllerConstants.real.main.id = 20;
         kExampleSubsystemControllerConstants.real.main.inverted = false;
-        kExampleSubsystemControllerConstants.real.currentLimit = 80;
+        kExampleSubsystemControllerConstants.real.currentLimit = 60;
         kExampleSubsystemControllerConstants.real.isBrakeMode = true;
 
         /* Followers */
-        kExampleSubsystemControllerConstants.real.followers = new SimpleControllerConstants[1];
-        kExampleSubsystemControllerConstants.real.followers[0] = new SimpleControllerConstants();
+        kExampleSubsystemControllerConstants.real.followers = new RealControllerConstants.SimpleControllerConstants[1];
+        kExampleSubsystemControllerConstants.real.followers[0] = new RealControllerConstants.SimpleControllerConstants();
         kExampleSubsystemControllerConstants.real.followers[0].id = 21;
         kExampleSubsystemControllerConstants.real.followers[0].inverted = true;
 
@@ -54,6 +55,8 @@ public class Constants {
         kExampleSubsystemControllerConstants.real.limitSwitchDirection = -1;
         kExampleSubsystemControllerConstants.real.limitSwitchAutoStopReset = true;
         kExampleSubsystemControllerConstants.real.limitSwitchInverted = true;
+        kExampleSubsystemControllerConstants.real.isVirtualLimit = false;
+        kExampleSubsystemControllerConstants.real.virtualLimitStallThreshold = 50 / 12.0;
 
         /* Simulation */
         kExampleSubsystemControllerConstants.motorType = DCMotor.getKrakenX60(2);

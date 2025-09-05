@@ -1,42 +1,60 @@
 package frc.robot;
 
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
-import edu.wpi.first.wpilibj2.command.button.CommandPS5Controller;
+import frc.lib.NinjasLib.loggedcontroller.LoggedCommandController;
+import frc.lib.NinjasLib.loggedcontroller.LoggedCommandControllerIO;
+import frc.lib.NinjasLib.loggedcontroller.LoggedCommandControllerIOPS5;
+import frc.lib.NinjasLib.statemachine.RobotStateBase;
 import frc.robot.subsystems.example.ExampleSubsystem;
 import frc.robot.subsystems.example.ExampleSubsystemIO;
 import frc.robot.subsystems.example.ExampleSubsystemIOController;
+import org.ironmaple.simulation.SimulatedArena;
 import org.littletonrobotics.junction.Logger;
 
 public class RobotContainer {
-    private CommandPS5Controller driverController;
-    private CommandPS5Controller operatorController;
+    private LoggedCommandController driverController;
+    private LoggedCommandController operatorController;
+
+    private ExampleSubsystem exampleSubsystem;
 
     public RobotContainer() {
-        RobotState.setInstance(new RobotState());
+        RobotStateBase.setInstance(new RobotState());
 
-        switch (Constants.kCurrentMode) {
+        switch (Constants.kRobotMode) {
             case REAL, SIM:
-                ExampleSubsystem.createInstance(new ExampleSubsystem(false, new ExampleSubsystemIOController()));
+                exampleSubsystem = new ExampleSubsystem(false, new ExampleSubsystemIOController());
+
+                driverController = new LoggedCommandController(new LoggedCommandControllerIOPS5(Constants.kDriverControllerPort));
+                operatorController = new LoggedCommandController(new LoggedCommandControllerIOPS5(Constants.kOperatorControllerPort));
                 break;
 
             case REPLAY:
-                ExampleSubsystem.createInstance(new ExampleSubsystem(false, new ExampleSubsystemIO() {}));
+                exampleSubsystem = new ExampleSubsystem(false, new ExampleSubsystemIO() {});
+
+                driverController = new LoggedCommandController(new LoggedCommandControllerIO() {});
+                operatorController = new LoggedCommandController(new LoggedCommandControllerIO() {});
                 break;
         }
-
-        driverController = new CommandPS5Controller(Constants.kDriverControllerPort);
-        operatorController = new CommandPS5Controller(Constants.kOperatorControllerPort);
 
         configureBindings();
     }
 
-    private void configureBindings() {
+    public ExampleSubsystem getExampleSubsystem() {
+        return exampleSubsystem;
+    }
 
+    private void configureBindings() {
+        driverController.cross().onTrue(exampleSubsystem.setAngle(() -> Rotation2d.kCCW_90deg));
+        driverController.circle().onTrue(exampleSubsystem.setAngle(() -> Rotation2d.kZero));
     }
 
     public void periodic() {
         Logger.recordOutput("Output1", 5);
+
+        if(Constants.kRobotMode == Constants.RobotMode.SIM)
+            SimulatedArena.getInstance().simulationPeriodic();
     }
 
     public Command getAutonomousCommand() {

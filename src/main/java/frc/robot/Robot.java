@@ -22,7 +22,7 @@ public class Robot extends LoggedRobot {
         Logger.recordMetadata("ProjectName", "Ninjas-Robot-Code-Template");
 
         // Set up data receivers & replay source
-        switch (Constants.kCurrentMode) {
+        switch (Constants.kRobotMode) {
             case REAL, SIM:
                 // A FAT32 formatted USB stick must be connected to one of the roboRIO USB ports.
                 // Running on a real robot, log to a USB stick ("/U/logs")
@@ -36,7 +36,7 @@ public class Robot extends LoggedRobot {
                 setUseTiming(false); // Run as fast as possible
                 String logPath = LogFileUtil.findReplayLog();
                 Logger.setReplaySource(new WPILOGReader(logPath));
-                Logger.addDataReceiver(new WPILOGWriter(LogFileUtil.addPathSuffix(logPath, "_sim")));
+                Logger.addDataReceiver(new WPILOGWriter(LogFileUtil.addPathSuffix(logPath, "_replay")));
                 break;
         }
 

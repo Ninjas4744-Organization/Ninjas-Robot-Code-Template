@@ -1,6 +1,6 @@
 package frc.robot;
 
-import frc.lib.NinjasLib.RobotStateBase;
+import frc.lib.NinjasLib.statemachine.RobotStateBase;
 
 public class RobotState extends RobotStateBase<States> {
     public RobotState() {
