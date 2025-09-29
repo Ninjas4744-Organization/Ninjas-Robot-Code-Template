@@ -22,7 +22,7 @@ public class Robot extends LoggedRobot {
         Logger.recordMetadata("ProjectName", "Ninjas-Robot-Code-Template");
 
         // Set up data receivers & replay source
-        switch (Constants.kRobotMode) {
+        switch (Constants.General.kRobotMode) {
             case REAL, SIM:
                 // A FAT32 formatted USB stick must be connected to one of the roboRIO USB ports.
                 // Running on a real robot, log to a USB stick ("/U/logs")

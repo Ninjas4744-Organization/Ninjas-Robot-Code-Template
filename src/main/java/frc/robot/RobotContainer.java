@@ -22,12 +22,12 @@ public class RobotContainer {
     public RobotContainer() {
         RobotStateBase.setInstance(new RobotState());
 
-        switch (Constants.kRobotMode) {
+        switch (Constants.General.kRobotMode) {
             case REAL, SIM:
                 exampleSubsystem = new ExampleSubsystem(false, new ExampleSubsystemIOController());
 
-                driverController = new LoggedCommandController(new LoggedCommandControllerIOPS5(Constants.kDriverControllerPort));
-                operatorController = new LoggedCommandController(new LoggedCommandControllerIOPS5(Constants.kOperatorControllerPort));
+                driverController = new LoggedCommandController(new LoggedCommandControllerIOPS5(Constants.General.kDriverControllerPort));
+                operatorController = new LoggedCommandController(new LoggedCommandControllerIOPS5(Constants.General.kOperatorControllerPort));
                 break;
 
             case REPLAY:
@@ -53,7 +53,7 @@ public class RobotContainer {
     public void periodic() {
         Logger.recordOutput("Output1", 5);
 
-        if(Constants.kRobotMode == Constants.RobotMode.SIM)
+        if(Constants.General.kRobotMode == Constants.RobotMode.SIM)
             SimulatedArena.getInstance().simulationPeriodic();
     }
 
