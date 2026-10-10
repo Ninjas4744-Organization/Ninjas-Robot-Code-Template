@@ -6,6 +6,8 @@ import com.pathplanner.lib.config.PIDConstants;
 import com.pathplanner.lib.config.RobotConfig;
 import com.pathplanner.lib.controllers.PPHolonomicDriveController;
 import com.pathplanner.lib.controllers.PathFollowingController;
+import edu.wpi.first.apriltag.AprilTagFieldLayout;
+import edu.wpi.first.apriltag.AprilTagFields;
 import edu.wpi.first.math.Pair;
 import edu.wpi.first.math.geometry.*;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
@@ -14,7 +16,10 @@ import edu.wpi.first.math.system.plant.LinearSystemId;
 import frc.lib.NinjasLib.controllers.Controller;
 import frc.lib.NinjasLib.controllers.constants.ControlConstants;
 import frc.lib.NinjasLib.controllers.constants.ControllerConstants;
+import frc.lib.NinjasLib.controllers.constants.RealControllerConstants;
 import frc.lib.NinjasLib.controllers.constants.RealControllerConstants.Base.SimpleControllerConstants;
+import frc.lib.NinjasLib.localization.RobotPose;
+import frc.lib.NinjasLib.localization.vision.FieldLayoutGetter;
 import frc.lib.NinjasLib.localization.vision.VisionConstants;
 import frc.lib.NinjasLib.swerve.constants.SwerveConstants;
 import frc.lib.NinjasLib.swerve.constants.SwerveControllerConstants;
@@ -24,149 +29,95 @@ import org.json.simple.parser.ParseException;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.Optional;
 
 public class SubsystemConstants {
     public static final ControllerConstants kExampleSubsystem = new ControllerConstants();
     static {
-        /* Base */
-        kExampleSubsystem.real.base.main.id = 30;
-        kExampleSubsystem.real.base.main.inverted = true;
-        kExampleSubsystem.real.base.followers = new SimpleControllerConstants[] { new SimpleControllerConstants(), new SimpleControllerConstants() };
-        kExampleSubsystem.real.base.followers[0].id = 31;
-        kExampleSubsystem.real.base.followers[0].inverted = false;
-        kExampleSubsystem.real.base.followers[1].id = 32;
-        kExampleSubsystem.real.base.followers[1].inverted = false;
-        kExampleSubsystem.real.base.isBrakeMode = false;
-
-        /* Control */
-        kExampleSubsystem.real.control.controlConstants = ControlConstants.createPIDF(0.5, 0, 0, Double.POSITIVE_INFINITY, 0.1175, 0, 0, 0, GravityTypeValue.Elevator_Static);
-        kExampleSubsystem.real.control.velocityGoalTolerance = 6;
-        kExampleSubsystem.real.control.enableFOC = true;
-
-        /* Simulation */
-        kExampleSubsystem.simMotor = DCMotor.getKrakenX60(2);
-        kExampleSubsystem.simSystem = LinearSystemId.createDCMotorSystem(12 / (100 * 2 * Math.PI), 12 / (1000 * 2 * Math.PI / 0.5));
+        kExampleSubsystem.real
+                .withBase(new RealControllerConstants.Base()
+                        .withMain(new RealControllerConstants.Base.SimpleControllerConstants(30, false))
+                        .withFollowers(new RealControllerConstants.Base.SimpleControllerConstants[]{
+                                new RealControllerConstants.Base.SimpleControllerConstants(31, false), new RealControllerConstants.Base.SimpleControllerConstants(31, true),
+                                new RealControllerConstants.Base.SimpleControllerConstants(32, false)
+                        })
+                        .withIsBrakeMode(false)
+                        .withSupplyCurrentLimit(40)
+                        .withStatorCurrentLimit(80))
+                .withControl(new RealControllerConstants.Control()
+                        .withControlConstants(ControlConstants.createProfiledPIDF(
+                                4.0, 0, 0, 0,
+                                80, 160, 0,
+                                0, 0, 0, 0, null))
+                        .withConversion(12.0, 1)
+                        .withVelocityGoalTolerance(10));
     }
 
+    private static final double kWheelRadius = 0.049; // meters
 
+    // Declare these *above* kSwerve: static fields initialize top to bottom, so a field that
+    // is defined further down would still be null when kSwerve reads it.
+    public static final ControllerConstants kDriveMotorConstants = new ControllerConstants();
+    public static final ControllerConstants kSteerMotorConstants = new ControllerConstants();
 
-    public static final SwerveConstants kSwerve = new SwerveConstants();
     static {
-        /* Chassis */
-        kSwerve.chassis.trackWidth = 0.59475;
-        kSwerve.chassis.wheelBase = 0.51855;
-        kSwerve.chassis.bumperLength = 0.8079;
-        kSwerve.chassis.bumperWidth = 0.8841;
-        kSwerve.chassis.kinematics = new SwerveDriveKinematics(
-            new Translation2d(kSwerve.chassis.wheelBase / 2.0, kSwerve.chassis.trackWidth / 2.0),
-            new Translation2d(kSwerve.chassis.wheelBase / 2.0, -kSwerve.chassis.trackWidth / 2.0),
-            new Translation2d(-kSwerve.chassis.wheelBase / 2.0, kSwerve.chassis.trackWidth / 2.0),
-            new Translation2d(-kSwerve.chassis.wheelBase / 2.0, -kSwerve.chassis.trackWidth / 2.0)
-        );
+        // Drive: velocity control, in meters and meters per second
+        kDriveMotorConstants.real
+                .withBase(new RealControllerConstants.Base()
+                        .withStatorCurrentLimit(100)
+                        .withSupplyCurrentLimit(60))
+                .withControl(new RealControllerConstants.Control()
+                        .withConversion(6.75, 2 * Math.PI * kWheelRadius)     // gear ratio, circumference
+                        .withControlConstants(ControlConstants.createPIDF(
+                                1.0, 0, 0, 0,                                     // P, I, D, IZone
+                                2.35, 0, 0.3, 0, GravityTypeValue.Elevator_Static))); // V, A, S, G, gravity type
 
-        /* Limits */
-        kSwerve.limits.maxSpeed = GeneralConstants.kRobotMode.isSim() ? 5.145 : 4.7;
-        kSwerve.limits.maxAngularVelocity = 8.5;
-        kSwerve.limits.speedLimit = Double.MAX_VALUE;
-        kSwerve.limits.rotationSpeedLimit = Double.MAX_VALUE;
-        kSwerve.limits.rotationAccelerationLimit = Double.MAX_VALUE;
-        kSwerve.limits.maxSkidAcceleration = 60;
-        kSwerve.limits.maxForwardAcceleration = 20;
-        kSwerve.limits.discretizeFactor = 2.75;
+        // Steer: position control, in radians
+        kSteerMotorConstants.real
+                .withBase(new RealControllerConstants.Base()
+                        .withStatorCurrentLimit(40)
+                        .withSupplyCurrentLimit(30))
+                .withControl(new RealControllerConstants.Control()
+                        .withConversion(150.0 / 7, 2 * Math.PI)               // gear ratio, radians per rotation
+                        .withControlConstants(ControlConstants.createPID(25, 0, 0.25, 0)));
+    }
 
-        /* Modules */
-        double wheelRadius = 0.049;
-        kSwerve.modules.openLoop = GeneralConstants.kRobotMode.isSim();
-        kSwerve.modules.driveMotorConstants = new ControllerConstants();
-        kSwerve.modules.driveMotorConstants.real.base.statorCurrentLimit = 100;
-        kSwerve.modules.driveMotorConstants.real.base.supplyCurrentLimit = 60;
-        kSwerve.modules.driveMotorConstants.real.control.gearRatio = 5.9;
-        kSwerve.modules.driveMotorConstants.real.control.conversionFactor = wheelRadius * 2 * Math.PI;
-        kSwerve.modules.driveMotorConstants.real.control.controlConstants = ControlConstants.createPIDF(1, 0, 0, 0.5, 2.35, 0, 0.3, 0, GravityTypeValue.Elevator_Static);
+    public static final SwerveConstants kSwerve;
 
-        kSwerve.modules.steerMotorConstants = new ControllerConstants();
-        kSwerve.modules.steerMotorConstants.real.base.statorCurrentLimit = 40;
-        kSwerve.modules.steerMotorConstants.real.base.supplyCurrentLimit = 30;
-        kSwerve.modules.steerMotorConstants.real.control.gearRatio = 18.75;
-        kSwerve.modules.steerMotorConstants.real.control.conversionFactor = 2 * Math.PI;
-        kSwerve.modules.steerMotorConstants.real.control.controlConstants = ControlConstants.createPID(25, 30, 0.25, Math.PI);
-
-        kSwerve.modules.driveControllerType = Controller.ControllerType.TalonFX;
-        kSwerve.modules.steerControllerType = Controller.ControllerType.TalonFX;
-        kSwerve.modules.moduleConstants = new SwerveModuleConstants[4];
-
-        for (int i = 0; i < 4; i++) {
-            kSwerve.modules.moduleConstants[i] = new SwerveModuleConstants(
-                i,
-                10 + i * 2,
-                11 + i * 2,
-                false,
-                false,
-                6 + i,
-                false,
-                0
-            );
-        }
-
-        kSwerve.modules.moduleConstants[0].CANCoderOffset = -0.293213;
-        kSwerve.modules.moduleConstants[1].CANCoderOffset = -0.470947;
-        kSwerve.modules.moduleConstants[2].CANCoderOffset = -0.270996;
-        kSwerve.modules.moduleConstants[3].CANCoderOffset = 0.481934;
-
-        /* Gyro */
-        kSwerve.gyro.gyroID = 5;
-        kSwerve.gyro.gyroInverted = false;
-        kSwerve.gyro.gyroType = SwerveConstants.Gyro.GyroType.Pigeon2;
-
-        /* Simulation */
-        kSwerve.simulation.driveMotorType = DCMotor.getKrakenX60Foc(1);
-        kSwerve.simulation.steerMotorType = DCMotor.getKrakenX60Foc(1);
-        kSwerve.simulation.swerveType = SwerveConstants.Simulation.SwerveType.Mark4n;
-        kSwerve.simulation.gearRatioLevel = 2;
-
-        /* Special */
-        kSwerve.special.enableOdometryThread = false;
-        kSwerve.special.odometryThreadFrequency = 50;
-        kSwerve.special.isReplay = GeneralConstants.kRobotMode.isReplay();
-        kSwerve.special.robotStartPose = new Pose2d(2, 4, Rotation2d.kZero);
-        kSwerve.special.CANBus = new CANBus("Swerve Bus");
-        kSwerve.special.enableAutoLock = false;
-
+    static {
         try {
-            kSwerve.special.robotConfig = RobotConfig.fromGUISettings();
-        } catch (IOException | ParseException e) {
+            kSwerve = new SwerveConstants()
+                    .withChassis(new SwerveConstants.Chassis()
+                            .withDimensions(0.6, 0.6)      // track width, wheel base (meters)
+                            .withBumper(0.9, 0.9))         // bumper width, length (meters)
+                    .withSpeeds(new SwerveConstants.Speeds()
+                            .withMaxSpeeds(5.0, 9.0)                       // physical max: m/s, rad/s
+                            .withSpeedLimits(4.0, 7.0)                     // soft driving limits: m/s, rad/s
+                            .withAccelerationLimits(20, 12, 15))           // skid, forward, rotation accel
+                    .withModules(new SwerveConstants.Modules()
+                            .withModuleConstants(new SwerveModuleConstants[] {
+                                    new SwerveModuleConstants(0, 1, 2, false, true, 3, false, 0.421),  // front left
+                                    new SwerveModuleConstants(1, 4, 5, false, true, 6, false, 0.128),  // front right
+                                    new SwerveModuleConstants(2, 7, 8, false, true, 9, false, 0.355),  // back left
+                                    new SwerveModuleConstants(3, 10, 11, false, true, 12, false, 0.009) // back right
+                            })
+                            .withDriveMotor(kDriveMotorConstants, Controller.ControllerType.TalonFX)
+                            .withSteerMotor(kSteerMotorConstants, Controller.ControllerType.TalonFX))
+                    .withGyro(new SwerveConstants.Gyro(5, false, SwerveConstants.Gyro.GyroType.Pigeon2))
+                    .withSpecial(new SwerveConstants.Special()
+                            .withRobotConfig(RobotConfig.fromGUISettings())
+                            .withRobotStartPose(new Pose2d(3, 3, Rotation2d.kZero)));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        } catch (ParseException e) {
             throw new RuntimeException(e);
         }
     }
 
 
-
-    public static final SwerveControllerConstants kSwerveController = new SwerveControllerConstants();
-    static {
-        kSwerveController.swerveConstants = kSwerve;
-        kSwerveController.drivePIDConstants = ControlConstants.createPID(6.5, 0, 0, 0);
-        kSwerveController.rotationPIDConstants = ControlConstants.createPID(5.5, 0, 0, 0);
-        kSwerveController.rotationPIDContinuousConnections = Pair.of(-Math.PI, Math.PI);
-    }
-
-
-
-    public static final PathFollowingController kAutonomyConfig = new PPHolonomicDriveController(
-        new PIDConstants(3.5, 0, 0),
-        new PIDConstants(3.5, 0, 0)
-    );
-
-
-
-    public static final VisionConstants kVision = new VisionConstants();
-    static {
-        kVision.cameras = Map.of(
-            "limelight-front", Pair.of(new Transform3d(0, 0, 0, Rotation3d.kZero), VisionConstants.CameraType.Limelight),
-            "limelight-right", Pair.of(new Transform3d(0, 0, 0, Rotation3d.kZero), VisionConstants.CameraType.Limelight)
-        );
-
-        kVision.fieldLayoutGetter = FieldConstants::getFieldLayoutWithIgnored;
-        kVision.isReplay = GeneralConstants.kRobotMode.isReplay();
-        kVision.robotPoseSupplier = () -> RobotState.get().getRobotPose();
-    }
+    public static final VisionConstants kVision = new VisionConstants()
+            .withFieldLayoutGetter(FieldConstants::getFieldLayoutWithIgnored)
+            .withRobotPoseSupplier(() -> RobotPose.get().getRobotPose())
+            .withPhotonVision("FrontCam", new Transform3d(0, 0, 0, Rotation3d.kZero))
+            .withLimelight("limelight-back");
 }

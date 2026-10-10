@@ -3,11 +3,10 @@ package frc.robot;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import frc.lib.NinjasLib.loggedcontroller.LoggedCommandController;
-import frc.lib.NinjasLib.loggedcontroller.LoggedCommandControllerIO;
 import frc.lib.NinjasLib.loggedcontroller.LoggedCommandControllerIOPS5;
-import frc.lib.NinjasLib.statemachine.RobotStateBase;
+import frc.lib.NinjasLib.swerve.SwerveController;
+import frc.lib.NinjasLib.swerve.SwerveSpeeds;
 import frc.robot.constants.GeneralConstants;
-import frc.robot.constants.SubsystemConstants;
 import frc.robot.subsystems.ExampleSubsystem;
 import org.ironmaple.simulation.SimulatedArena;
 import org.littletonrobotics.junction.Logger;
@@ -19,15 +18,8 @@ public class RobotContainer {
     private static ExampleSubsystem exampleSubsystem;
 
     public RobotContainer() {
-        if (!GeneralConstants.kRobotMode.isReplay()) {
-            driverController = new LoggedCommandController("Driver", new LoggedCommandControllerIOPS5(GeneralConstants.kDriverControllerPort));
-//            operatorController = new LoggedCommandController("Operator", new LoggedCommandControllerIOPS5(GeneralConstants.kOperatorControllerPort));
-        } else {
-            driverController = new LoggedCommandController("Driver", new LoggedCommandControllerIO() {});
-//            operatorController = new LoggedCommandController("Operator", new LoggedCommandControllerIO() {});
-        }
-
-        RobotStateBase.set(new RobotState(SubsystemConstants.kSwerve.chassis.kinematics));
+        driverController = new LoggedCommandController("Driver", new LoggedCommandControllerIOPS5(GeneralConstants.kDriverControllerPort));
+        operatorController = new LoggedCommandController("Operator", new LoggedCommandControllerIOPS5(GeneralConstants.kOperatorControllerPort));
 
         exampleSubsystem = new ExampleSubsystem(true);
 
@@ -48,6 +40,14 @@ public class RobotContainer {
     }
 
     public void periodic() {
+        SwerveSpeeds driverInput = new SwerveSpeeds(
+                driverController.getLeftY(),
+                driverController.getLeftY(),
+                driverController.getRightX(),
+                true
+        );
+
+        SwerveController.get().setControl(driverInput, "DRIVER");
         Logger.recordOutput("Output1", 5);
 
         if(GeneralConstants.kRobotMode.isSim())

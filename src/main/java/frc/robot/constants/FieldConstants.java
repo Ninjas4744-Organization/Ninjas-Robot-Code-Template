@@ -5,7 +5,8 @@ import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.apriltag.AprilTagFields;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.wpilibj.DriverStation;
-import frc.lib.NinjasLib.statemachine.RobotStateBase;
+import frc.lib.NinjasLib.localization.RobotPose;
+import frc.robot.Robot;
 
 import java.io.IOException;
 import java.util.List;
@@ -28,12 +29,12 @@ public class FieldConstants {
     }
 
     public static Optional<AprilTagFieldLayout> getFieldLayoutWithIgnored(List<Integer> ignoredTags) {
-        if (RobotStateBase.getAlliance().isEmpty())
+        if (RobotPose.getAlliance().isEmpty())
             return Optional.empty();
 
         AprilTagFieldLayout layout;
 
-        layout = RobotStateBase.getAlliance().get() == DriverStation.Alliance.Blue
+        layout = RobotPose.getAlliance().get() == DriverStation.Alliance.Blue
             ? kBlueFieldLayout
             : kRedFieldLayout;
 
