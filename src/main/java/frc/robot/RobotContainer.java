@@ -21,7 +21,7 @@ public class RobotContainer {
         driverController = new LoggedCommandController("Driver", new LoggedCommandControllerIOPS5(GeneralConstants.kDriverControllerPort));
         operatorController = new LoggedCommandController("Operator", new LoggedCommandControllerIOPS5(GeneralConstants.kOperatorControllerPort));
 
-        exampleSubsystem = new ExampleSubsystem(true);
+        exampleSubsystem = new ExampleSubsystem(false);
 
         configureBindings();
     }

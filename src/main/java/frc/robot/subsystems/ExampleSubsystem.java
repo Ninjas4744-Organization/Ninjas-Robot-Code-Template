@@ -14,10 +14,12 @@ public class ExampleSubsystem extends StateMachineBase<ExampleSubsystem.ExampleS
     }
 
     private Controller motor;
+    private boolean enabled = false;
 
     public ExampleSubsystem(boolean enabled) {
         super(ExampleState.class);
         if (enabled){
+            enabled = true;
             motor = Controller.createController(
                 Controller.ControllerType.TalonFX,
                 SubsystemConstants.kExampleSubsystem
@@ -25,14 +27,28 @@ public class ExampleSubsystem extends StateMachineBase<ExampleSubsystem.ExampleS
         }
     }
 
-    public void setPercent(double percent)  { motor.setPercent(percent); }
-    public void setHeight(double meters)    { motor.setPosition(meters); }
-    public void stop()                      { motor.stop(); }
-    public boolean atGoal()                 { return motor.atGoal(); }
+    public void setPercent(double percent)  {
+        if (enabled)
+            motor.setPercent(percent);
+    }
+    public void setHeight(double meters)    {
+        if (enabled)
+            motor.setPosition(meters);
+    }
+    public void stop()                      {
+        if (enabled)
+            motor.stop();
+    }
+    public boolean atGoal(){
+        if (enabled)
+            return motor.atGoal();
+        return true;
+    }
 
     @Override
     public void periodic() {
-        motor.periodic();
+        if (enabled)
+            motor.periodic();
     }
 
     @Override
