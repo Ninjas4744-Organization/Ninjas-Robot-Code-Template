@@ -6,7 +6,6 @@ import edu.wpi.first.apriltag.AprilTagFields;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.wpilibj.DriverStation;
 import frc.lib.NinjasLib.localization.RobotPose;
-import frc.robot.Robot;
 
 import java.io.IOException;
 import java.util.List;
@@ -69,6 +68,6 @@ public class FieldConstants {
         if (getFieldLayout().isEmpty())
             return Optional.empty();
 
-        return Optional.of(getFieldLayout().get().getTagPose(id).get());
+        return getFieldLayout().get().getTagPose(id);
     }
 }

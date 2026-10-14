@@ -4,46 +4,24 @@
 
 package frc.robot;
 
+import dev.doglog.DogLogOptions;
+import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
-import frc.lib.NinjasLib.swerve.SwerveController;
-import frc.robot.constants.GeneralConstants;
-import org.littletonrobotics.junction.LogFileUtil;
-import org.littletonrobotics.junction.LoggedRobot;
-import org.littletonrobotics.junction.Logger;
-import org.littletonrobotics.junction.networktables.NT4Publisher;
-import org.littletonrobotics.junction.wpilog.WPILOGReader;
-import org.littletonrobotics.junction.wpilog.WPILOGWriter;
+import frc.lib.NinjasLib.util.NinjasLogger;
 
-public class Robot extends LoggedRobot {
+public class Robot extends TimedRobot {
     private Command autonomousCommand;
     private final RobotContainer robotContainer;
 
     public Robot() {
-        // Record metadata
-        Logger.recordMetadata("ProjectName", "Ninjas-Robot-Code-Template");
+        NinjasLogger.setOptions(new DogLogOptions()
+            .withCaptureConsole(true)
+            .withCaptureDs(true)
+            .withCaptureNt(true)
+            .withLogExtras(true));
 
-        // Set up data receivers & replay source
-        switch (GeneralConstants.kRobotMode) {
-            case WORKSHOP, COMP, SIM, SIM_COMP:
-                // A FAT32 formatted USB stick must be connected to one of the roboRIO USB ports.
-                // Running on a real robot, log to a USB stick ("/U/logs")
-                // Also runs sim and logs to logs/ folder
-                Logger.addDataReceiver(new WPILOGWriter());
-                Logger.addDataReceiver(new NT4Publisher());
-                break;
-
-            case REPLAY:
-                // Replaying a log, set up replay source
-                setUseTiming(false); // Run as fast as possible
-                String logPath = LogFileUtil.findReplayLog();
-                Logger.setReplaySource(new WPILOGReader(logPath));
-                Logger.addDataReceiver(new WPILOGWriter(LogFileUtil.addPathSuffix(logPath, "_replay")));
-                break;
-        }
-
-        // Start AdvantageKit logger
-        Logger.start();
+        NinjasLogger.setEnabled(true);
 
         robotContainer = new RobotContainer();
     }
@@ -69,7 +47,7 @@ public class Robot extends LoggedRobot {
 
     @Override
     public void autonomousInit() {
-        SwerveController.get().setChannel("AUTO");
+        robotContainer.reset(true);
         autonomousCommand = robotContainer.getAutonomousCommand();
 
         if (autonomousCommand != null) {
@@ -87,7 +65,8 @@ public class Robot extends LoggedRobot {
 
     @Override
     public void teleopInit() {
-        SwerveController.get().setChannel("DRIVER");
+        robotContainer.reset(false);
+
         if (autonomousCommand != null) {
             autonomousCommand.cancel();
         }
@@ -107,6 +86,7 @@ public class Robot extends LoggedRobot {
 
         // stop all subsystems
         RobotContainer.getExampleSubsystem().stop();
+        RobotContainer.getSwerveSubsystem().drive(0, 0, 0, 0);
     }
 
     @Override

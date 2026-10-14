@@ -6,118 +6,133 @@ import com.pathplanner.lib.config.PIDConstants;
 import com.pathplanner.lib.config.RobotConfig;
 import com.pathplanner.lib.controllers.PPHolonomicDriveController;
 import com.pathplanner.lib.controllers.PathFollowingController;
-import edu.wpi.first.apriltag.AprilTagFieldLayout;
-import edu.wpi.first.apriltag.AprilTagFields;
-import edu.wpi.first.math.Pair;
-import edu.wpi.first.math.geometry.*;
-import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.system.plant.LinearSystemId;
+import edu.wpi.first.wpilibj.simulation.FlywheelSim;
 import frc.lib.NinjasLib.controllers.Controller;
 import frc.lib.NinjasLib.controllers.constants.ControlConstants;
 import frc.lib.NinjasLib.controllers.constants.ControllerConstants;
-import frc.lib.NinjasLib.controllers.constants.RealControllerConstants;
-import frc.lib.NinjasLib.controllers.constants.RealControllerConstants.Base.SimpleControllerConstants;
+import frc.lib.NinjasLib.controllers.constants.RealControllerConstants.Base;
+import frc.lib.NinjasLib.controllers.constants.RealControllerConstants.Control;
 import frc.lib.NinjasLib.localization.RobotPose;
-import frc.lib.NinjasLib.localization.vision.FieldLayoutGetter;
 import frc.lib.NinjasLib.localization.vision.VisionConstants;
 import frc.lib.NinjasLib.swerve.constants.SwerveConstants;
+import frc.lib.NinjasLib.swerve.constants.SwerveConstants.*;
 import frc.lib.NinjasLib.swerve.constants.SwerveControllerConstants;
 import frc.lib.NinjasLib.swerve.constants.SwerveModuleConstants;
-import frc.robot.RobotState;
 import org.json.simple.parser.ParseException;
 
 import java.io.IOException;
-import java.util.Map;
-import java.util.Optional;
 
 public class SubsystemConstants {
-    public static final ControllerConstants kExampleSubsystem = new ControllerConstants();
-    static {
-        kExampleSubsystem.real
-                .withBase(new RealControllerConstants.Base()
-                        .withMain(new RealControllerConstants.Base.SimpleControllerConstants(30, false))
-                        .withFollowers(new RealControllerConstants.Base.SimpleControllerConstants[]{
-                                new RealControllerConstants.Base.SimpleControllerConstants(31, false), new RealControllerConstants.Base.SimpleControllerConstants(31, true),
-                                new RealControllerConstants.Base.SimpleControllerConstants(32, false)
-                        })
-                        .withIsBrakeMode(false)
-                        .withSupplyCurrentLimit(40)
-                        .withStatorCurrentLimit(80))
-                .withControl(new RealControllerConstants.Control()
-                        .withControlConstants(ControlConstants.createProfiledPIDF(
-                                4.0, 0, 0, 0,
-                                80, 160, 0,
-                                0, 0, 0, 0, null))
-                        .withConversion(12.0, 1)
-                        .withVelocityGoalTolerance(10));
-    }
+    public static final ControllerConstants kExampleSubsystem = new ControllerConstants()
+        .withBase(new Base()
+            .withMain(new Base.SimpleControllerConstants(30, false))
+            .withFollowers(new Base.SimpleControllerConstants[] {
+                new Base.SimpleControllerConstants(31, false),
+                new Base.SimpleControllerConstants(32, false)
+            })
+            .withIsBrakeMode(false)
+            .withSupplyCurrentLimit(40)
+            .withStatorCurrentLimit(80)
+        ).withControl(new Control()
+            .withControlConstants(ControlConstants.createPID(1, 0, 0, 0))
+            .withConversion(12.0, 1)
+            .withVelocityGoalTolerance(7)
+        ).withSim(() -> new FlywheelSim(LinearSystemId.createFlywheelSystem(DCMotor.getKrakenX60(3), 0.01, 12), DCMotor.getKrakenX60(3)));
 
-    private static final double kWheelRadius = 0.049; // meters
+    public static class Swerve {
+        public static double kDriverSpeedFactor = 1;
+        public static double kDriverRotationSpeedFactor = 1;
+        public static double kDriverPowFactor = 1;
+        public static double kDriverRotationPowFactor = 1;
+        public static double kJoystickDeadband = 0.04;
+        public static boolean kDriverFieldRelative = true;
 
-    // Declare these *above* kSwerve: static fields initialize top to bottom, so a field that
-    // is defined further down would still be null when kSwerve reads it.
-    public static final ControllerConstants kDriveMotorConstants = new ControllerConstants();
-    public static final ControllerConstants kSteerMotorConstants = new ControllerConstants();
+        private static final double kWheelRadius = 0.049; // meters
+        private static final RobotConfig robotConfig;
 
-    static {
-        // Drive: velocity control, in meters and meters per second
-        kDriveMotorConstants.real
-                .withBase(new RealControllerConstants.Base()
-                        .withStatorCurrentLimit(100)
-                        .withSupplyCurrentLimit(60))
-                .withControl(new RealControllerConstants.Control()
-                        .withConversion(6.75, 2 * Math.PI * kWheelRadius)     // gear ratio, circumference
-                        .withControlConstants(ControlConstants.createPIDF(
-                                1.0, 0, 0, 0,                                     // P, I, D, IZone
-                                2.35, 0, 0.3, 0, GravityTypeValue.Elevator_Static))); // V, A, S, G, gravity type
-
-        // Steer: position control, in radians
-        kSteerMotorConstants.real
-                .withBase(new RealControllerConstants.Base()
-                        .withStatorCurrentLimit(40)
-                        .withSupplyCurrentLimit(30))
-                .withControl(new RealControllerConstants.Control()
-                        .withConversion(150.0 / 7, 2 * Math.PI)               // gear ratio, radians per rotation
-                        .withControlConstants(ControlConstants.createPID(25, 0, 0.25, 0)));
-    }
-
-    public static final SwerveConstants kSwerve;
-
-    static {
-        try {
-            kSwerve = new SwerveConstants()
-                    .withChassis(new SwerveConstants.Chassis()
-                            .withDimensions(0.6, 0.6)      // track width, wheel base (meters)
-                            .withBumper(0.9, 0.9))         // bumper width, length (meters)
-                    .withSpeeds(new SwerveConstants.Speeds()
-                            .withMaxSpeeds(5.0, 9.0)                       // physical max: m/s, rad/s
-                            .withSpeedLimits(4.0, 7.0)                     // soft driving limits: m/s, rad/s
-                            .withAccelerationLimits(20, 12, 15))           // skid, forward, rotation accel
-                    .withModules(new SwerveConstants.Modules()
-                            .withModuleConstants(new SwerveModuleConstants[] {
-                                    new SwerveModuleConstants(0, 1, 2, false, true, 3, false, 0.421),  // front left
-                                    new SwerveModuleConstants(1, 4, 5, false, true, 6, false, 0.128),  // front right
-                                    new SwerveModuleConstants(2, 7, 8, false, true, 9, false, 0.355),  // back left
-                                    new SwerveModuleConstants(3, 10, 11, false, true, 12, false, 0.009) // back right
-                            })
-                            .withDriveMotor(kDriveMotorConstants, Controller.ControllerType.TalonFX)
-                            .withSteerMotor(kSteerMotorConstants, Controller.ControllerType.TalonFX))
-                    .withGyro(new SwerveConstants.Gyro(5, false, SwerveConstants.Gyro.GyroType.Pigeon2))
-                    .withSpecial(new SwerveConstants.Special()
-                            .withRobotConfig(RobotConfig.fromGUISettings())
-                            .withRobotStartPose(new Pose2d(3, 3, Rotation2d.kZero)));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        } catch (ParseException e) {
-            throw new RuntimeException(e);
+        static {
+            try {
+                robotConfig = RobotConfig.fromGUISettings();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            } catch (ParseException e) {
+                throw new RuntimeException(e);
+            }
         }
+
+        private static final ControllerConstants kDriveMotor = new ControllerConstants()
+            .withBase(new Base()
+                .withStatorCurrentLimit(100)
+                .withSupplyCurrentLimit(60)
+            ).withControl(new Control()
+                .withConversion(6.75, 2 * Math.PI * kWheelRadius)
+                .withControlConstants(ControlConstants.createPIDF(1, 0, 0, 0.5, 2.35, 0, 0.3, 0, GravityTypeValue.Elevator_Static))
+            );
+
+        private static final ControllerConstants kSteerMotor = new ControllerConstants()
+            .withBase(new Base()
+                .withStatorCurrentLimit(40)
+                .withSupplyCurrentLimit(40)
+            ).withControl(new Control()
+                .withConversion(18.75, 2 * Math.PI)
+                .withControlConstants(ControlConstants.createPID(25, 30, 0.25, Math.PI))
+            );
+
+        public static final SwerveConstants kSwerve = new SwerveConstants()
+            .withChassis(new Chassis()
+                .withDimensions(0.6, 0.6)
+                .withBumper(0.8, 0.8)
+            )
+            .withSpeeds(new Speeds()
+                .withMaxSpeeds(4.0, 9.0)
+                .withSpeedLimits(4.0, 9.0)
+                .withAccelerationLimits(60, 20, Double.POSITIVE_INFINITY)
+                .withDiscretizeFactor(2.75)
+            )
+            .withModules(new Modules()
+                .withModuleConstants(new SwerveModuleConstants[] {
+                    new SwerveModuleConstants(0, 10, 11, false, true, 6, false, 0.421), // front left
+                    new SwerveModuleConstants(1, 12, 13, false, true, 7, false, 0.128), // front right
+                    new SwerveModuleConstants(2, 14, 15, false, true, 8, false, 0.355), // back left
+                    new SwerveModuleConstants(3, 16, 17, false, true, 9, false, 0.009)  // back right
+                })
+                .withOpenLoop(false)
+                .withDriveMotor(kDriveMotor, Controller.ControllerType.TalonFX)
+                .withSteerMotor(kSteerMotor, Controller.ControllerType.TalonFX)
+            )
+            .withGyro(new Gyro(5, false, Gyro.GyroType.Pigeon2))
+            .withSpecial(new Special()
+                .withRobotConfig(robotConfig)
+                .withRobotStartPose(new Pose2d(3, 3, Rotation2d.kZero))
+                .withCANBus(new CANBus("swerve"))
+            );
+
+        public static final SwerveControllerConstants kSwerveController = new SwerveControllerConstants()
+            .withSwerveConstants(kSwerve)
+            .withDrivePID(ControlConstants.createPID(6.5, 0, 0, 0))
+            .withRotationPID(ControlConstants.createPID(5.5, 0, 0, 0));
+
+        public static final PathFollowingController kAutonomyConfig = new PPHolonomicDriveController(
+            new PIDConstants(3.5, 0, 0),
+            new PIDConstants(3.5, 0, 0)
+        );
     }
 
+    public static class Vision {
+        public static final double kMaxDistanceFilter = 5;
+        public static final double kMinDistanceFilter = 0.6;
+        public static final double kMaxSpeedFilter = 3;
+        public static final double kMaxAngularSpeedFilter = 3;
+        public static final double kMaxAmbiguityFilter = 0.2;
+        public static final double kOdometryDriftPerMeter = 0.02316;
 
-    public static final VisionConstants kVision = new VisionConstants()
+        public static final VisionConstants kVision = new VisionConstants()
             .withFieldLayoutGetter(FieldConstants::getFieldLayoutWithIgnored)
-            .withRobotPoseSupplier(() -> RobotPose.get().getRobotPose())
-            .withPhotonVision("FrontCam", new Transform3d(0, 0, 0, Rotation3d.kZero))
-            .withLimelight("limelight-back");
+            .withRobotPoseSupplier(RobotPose.get()::getRobotPose)
+            .withLimelight("limelight");
+    }
 }
