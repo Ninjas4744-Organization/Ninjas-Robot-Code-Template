@@ -38,7 +38,7 @@ public class RobotContainer {
 
         swerveSubsystem = new SwerveSubsystem(true);
         visionSubsystem = new VisionSubsystem(true);
-        exampleSubsystem = new ExampleSubsystem(false);
+        exampleSubsystem = new ExampleSubsystem(true);
 
         configureAuto();
         configureBindings();
@@ -119,6 +119,7 @@ public class RobotContainer {
         NamedCommands.registerCommand("STOP", exampleSubsystem.changeStateCommand(ExampleSubsystem.ExampleState.IDLE));
 
         autoChooser = NinjasAutoBuilder.buildAutoChooser();
+        SmartDashboard.putData("Auto Chooser", autoChooser);
         SmartDashboard.putBoolean("Mirror Auto", false);
     }
 

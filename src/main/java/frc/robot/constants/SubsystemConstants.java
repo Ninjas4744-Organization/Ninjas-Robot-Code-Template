@@ -132,7 +132,7 @@ public class SubsystemConstants {
 
         public static final VisionConstants kVision = new VisionConstants()
             .withFieldLayoutGetter(FieldConstants::getFieldLayoutWithIgnored)
-            .withRobotPoseSupplier(RobotPose.get()::getRobotPose)
+            .withRobotPoseSupplier(() -> RobotPose.get().getRobotPose()) // DO NOT TURN INTO :: LAMBDA EXPRESSION (RobotPose.get()::getRobotPose). This calls RobotPose.get() before it is defined - breaking the code.
             .withLimelight("limelight");
     }
 }

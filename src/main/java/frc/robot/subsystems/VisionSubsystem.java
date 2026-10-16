@@ -24,11 +24,11 @@ public class VisionSubsystem extends SubsystemBase {
 
     private Pose2d lastVisionPose = new Pose2d();
 
-    private final VisionFiltersCalculator kFilters = visionOutput -> {
+    public final VisionFiltersCalculator kFilters = visionOutput -> {
         SwerveSpeeds speed = frc.lib.NinjasLib.swerve.Swerve.get().getSpeeds();
 
         return ((Math.hypot(speed.vxMetersPerSecond, speed.vyMetersPerSecond) <= SubsystemConstants.Vision.kMaxSpeedFilter
-            && speed.omegaRadiansPerSecond <= SubsystemConstants.Vision.kMaxAngularSpeedFilter
+            && Math.abs(speed.omegaRadiansPerSecond) <=SubsystemConstants.Vision.kMaxAngularSpeedFilter
             && visionOutput.closestTargetDist <= SubsystemConstants.Vision.kMaxDistanceFilter
             && visionOutput.closestTargetDist >= SubsystemConstants.Vision.kMinDistanceFilter
             && visionOutput.ambiguity <= SubsystemConstants.Vision.kMaxAmbiguityFilter)
@@ -36,14 +36,14 @@ public class VisionSubsystem extends SubsystemBase {
             && resettedGyro;
     };
 
-    private final VisionStrengthCalculator kStrength = VisionStrengthCalculator.kDefault;
+    public final VisionStrengthCalculator kStrength = VisionStrengthCalculator.kDefault;
 
     public VisionSubsystem(boolean enabled) {
         this.enabled = enabled;
 
+        RobotPose.setInstance(new RobotPose(SubsystemConstants.Swerve.kSwerve.chassis.kinematics, kStrength, kFilters));
         if (enabled) {
             Vision.setInstance(new Vision(SubsystemConstants.Vision.kVision));
-            RobotPose.setInstance(new RobotPose(SubsystemConstants.Swerve.kSwerve.chassis.kinematics, kStrength, kFilters));
         }
     }
 
@@ -58,7 +58,7 @@ public class VisionSubsystem extends SubsystemBase {
             isFirstDisable = !DriverStation.isAutonomous();
         } else if (isFirstDisable && DriverStation.isAutonomous() && !Robot.isSimulation()) {
             framesSinceGyroUpdate++;
-            if (framesSinceGyroUpdate >= 75) {
+            if (framesSinceGyroUpdate >= 75 && megaTag1Pose != null) {
                 RobotPose.get().resetGyro(megaTag1Pose.getRotation());
                 resettedGyro = true;
                 framesSinceGyroUpdate = 0;
@@ -75,8 +75,10 @@ public class VisionSubsystem extends SubsystemBase {
             boolean passedFilters = kFilters.isPassed(output);
 //            Matrix<N3, N1> strength = kStrength.calculate(output);
 
-            megaTag1Pose = output.robotPoseMegaTag1;
-            megaTag1DistFromTag = output.closestTargetDistMegaTag1;
+            if (output.hasTargetsMegaTag1) {
+                megaTag1Pose = output.robotPoseMegaTag1;
+                megaTag1DistFromTag = output.closestTargetDistMegaTag1;
+            }
             RobotPose.get().addVisionUpdate(output, output.timestamp);
 
             NinjasLogger.log("Vision/" + output.cameraName + "/Vision Pose", output.robotPose);

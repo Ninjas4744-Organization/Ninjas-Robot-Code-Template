@@ -4,6 +4,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import frc.lib.NinjasLib.controllers.Controller;
 import frc.lib.NinjasLib.statemachine.StateMachineBase;
+import frc.lib.NinjasLib.util.NinjasLogger;
 import frc.robot.constants.PositionsConstants;
 import frc.robot.constants.SubsystemConstants;
 
@@ -25,7 +26,7 @@ public class ExampleSubsystem extends StateMachineBase<ExampleSubsystem.ExampleS
     private final boolean enabled;
 
     public ExampleSubsystem(boolean enabled) {
-        super(ExampleState.class);
+        super(ExampleState.class, UNKNOWN, "Subsystems");
 
         this.enabled = enabled;
         if (enabled) {
@@ -40,6 +41,8 @@ public class ExampleSubsystem extends StateMachineBase<ExampleSubsystem.ExampleS
 
         controller.periodic();
         super.periodic();
+
+        NinjasLogger.log("Subsystems/ExampleSubsystem/Controller", controller.getLogs());
     }
 
     @Override
