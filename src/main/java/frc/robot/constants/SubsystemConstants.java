@@ -51,12 +51,12 @@ public class SubsystemConstants {
         public static double kJoystickDeadband = 0.04;
         public static boolean kDriverFieldRelative = true;
 
-        private static final double kWheelRadius = 0.049; // meters
-        private static final RobotConfig robotConfig;
+        public static final double kWheelRadius = 0.049; // meters
+        public static final RobotConfig kRobotConfig;
 
         static {
             try {
-                robotConfig = RobotConfig.fromGUISettings();
+                kRobotConfig = RobotConfig.fromGUISettings();
             } catch (IOException e) {
                 throw new RuntimeException(e);
             } catch (ParseException e) {
@@ -106,7 +106,7 @@ public class SubsystemConstants {
             )
             .withGyro(new Gyro(5, false, Gyro.GyroType.Pigeon2))
             .withSpecial(new Special()
-                .withRobotConfig(robotConfig)
+                .withRobotConfig(kRobotConfig)
                 .withRobotStartPose(new Pose2d(3, 3, Rotation2d.kZero))
                 .withCANBus(new CANBus("swerve"))
             );
